@@ -2931,14 +2931,14 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                     Settings.System.NAVIGATION_BAR_ENABLED, defaultToNavigationBar ? 1 : 0,
                             UserHandle.USER_CURRENT) == 1;
             final boolean buttonBrightnessEnabled = Settings.System.getIntForUser(resolver,
-                    Settings.System.BUTTON_BRIGHTNESS_ENABLED, 0, UserHandle.USER_CURRENT) == 1;
+                    Settings.System.BUTTON_BRIGHTNESS, 0, UserHandle.USER_CURRENT) > 0;
             if (navBarEnabled != mNavBarEnabled) {
                 mNavBarEnabled = navBarEnabled;
                 if (mDeviceHardwareKeys != 0) {
                     SystemProperties.set("qemu.hw.mainkeys", mNavBarEnabled ? "0" : "1");
                     if (!mNavBarEnabled && buttonBrightnessEnabled) {
                         Settings.System.putInt(resolver,
-                                Settings.System.BUTTON_BRIGHTNESS_ENABLED, 0);
+                                Settings.System.BUTTON_BRIGHTNESS, 0);
                     }
                 }
             }
