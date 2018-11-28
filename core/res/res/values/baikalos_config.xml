@@ -18,4 +18,6 @@
         <item>com.Slack</item>
     </string-array>
 
+    <!-- Whether the device has outdated qti-telephony-common.jar -->
+    <bool name="config_oldQtiTelephony">true</bool>
 </resources>
