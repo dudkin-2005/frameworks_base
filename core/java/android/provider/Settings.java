@@ -4439,29 +4439,6 @@ public final class Settings {
                 BOOLEAN_VALIDATOR;
 
         /**
-         * Value for button brightness.
-         * This is an integer value in a range between 0 and 255.
-         *      0 = off
-         *    255 = default
-         *    255 = max
-         * @hide
-         */
-        public static final String BUTTON_BRIGHTNESS = "button_brightness";
-
-        /** @hide */
-        public static final Validator BUTTON_BRIGHTNESS_VALIDATOR =
-            new SettingsValidators.InclusiveIntegerRangeValidator(0, 255);
-
-        /**
-         * Whether user can enable/disable button brightness.
-         * <p>
-         * Type: int (0 for false, 1 for true)
-         * @hide
-         */
-        public static final String BUTTON_BRIGHTNESS_ENABLED = "button_brightness_enabled";
-
-        /** @hide */
-        private static final Validator BUTTON_BRIGHTNESS_ENABLED_VALIDATOR = BOOLEAN_VALIDATOR;
 
         /** Action to perform when the home key is long-pressed.
          * (Default can be configured via config_longPressOnHardwareHomeBehavior)
@@ -4952,8 +4929,6 @@ public final class Settings {
             PRIVATE_SETTINGS.add(THEMING_ACCENT);
             PRIVATE_SETTINGS.add(OMNI_USE_BOTTOM_GESTURE_NAVIGATION);
             PRIVATE_SETTINGS.add(NAVIGATION_BAR_ENABLED);
-            PRIVATE_SETTINGS.add(BUTTON_BRIGHTNESS);
-            PRIVATE_SETTINGS.add(BUTTON_BRIGHTNESS_ENABLED);
             PRIVATE_SETTINGS.add(KEY_HOME_LONG_PRESS_ACTION);
             PRIVATE_SETTINGS.add(KEY_HOME_DOUBLE_TAP_ACTION);
             PRIVATE_SETTINGS.add(KEY_MENU_LONG_PRESS_ACTION);
@@ -5101,8 +5076,6 @@ public final class Settings {
             VALIDATORS.put(OMNI_USE_BOTTOM_GESTURE_NAVIGATION,
                     OMNI_USE_BOTTOM_GESTURE_NAVIGATION_VALIDATOR);
             VALIDATORS.put(NAVIGATION_BAR_ENABLED, NAVIGATION_BAR_ENABLED_VALIDATOR);
-            VALIDATORS.put(BUTTON_BRIGHTNESS, BUTTON_BRIGHTNESS_VALIDATOR);
-            VALIDATORS.put(BUTTON_BRIGHTNESS_ENABLED, BUTTON_BRIGHTNESS_ENABLED_VALIDATOR);
             VALIDATORS.put(OMNI_SHOW_BATTERY_IMAGE, OMNI_SHOW_BATTERY_IMAGE_VALIDATOR);
             // BAIKALOS Settings end
         }
