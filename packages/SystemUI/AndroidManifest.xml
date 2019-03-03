@@ -224,6 +224,10 @@
     <!-- Sync tile -->
     <uses-permission android:name="android.permission.READ_SYNC_SETTINGS" />
     <uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS" />
+    <uses-permission android:name="android.permission.ONE_HANDED_MODE" />
+
+    <!-- Weather on lockscreen -->
+    <uses-permission android:name="com.revengeos.weather.client.READ_WEATHER" />
 
     <application
         android:name=".SystemUIApplication"

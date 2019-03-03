@@ -130,6 +130,11 @@ class GlobalActionsDialog implements DialogInterface.OnDismissListener,
     private static final String GLOBAL_ACTION_KEY_EMERGENCY = "emergency";
     private static final String GLOBAL_ACTION_KEY_SCREENSHOT = "screenshot";
     private static final String GLOBAL_ACTION_KEY_RESTART_RECOVERY = "recovery";
+    private static final String GLOBAL_ACTION_KEY_TORCH = "torch";
+    private static final String GLOBAL_ACTION_KEY_ONEHAND = "onehand";
+    private static final String EXTRA_ALIGNMENT_STATE = "alignment_state";
+    private static final String ACTION_ONEHAND_TRIGGER_EVENT =
+            "com.android.server.wm.onehand.intent.action.ONEHAND_TRIGGER_EVENT";
 
     private static final int SHOW_TOGGLES_BUTTON = 1;
     private static final int RESTART_RECOVERY_BUTTON = 2;
@@ -169,6 +174,11 @@ class GlobalActionsDialog implements DialogInterface.OnDismissListener,
     private final boolean mShowSilentToggle;
     private final EmergencyAffordanceManager mEmergencyAffordanceManager;
     private final ScreenshotHelper mScreenshotHelper;
+    private boolean mTorchEnabled = false;
+    private boolean mOneHandEnabled = false;
+
+    private BitSet mAirplaneModeBits;
+    private final List<PhoneStateListener> mPhoneStateListeners = new ArrayList<>();
 
     /**
      * @param context everything needs a context :(
@@ -446,6 +456,11 @@ class GlobalActionsDialog implements DialogInterface.OnDismissListener,
                 }
             } else if (GLOBAL_ACTION_KEY_RESTART_RECOVERY.equals(actionKey)) {
                 mItems.add(mShowAdvancedToggles);
+            } else if (GLOBAL_ACTION_KEY_ONEHAND.equals(actionKey)) {
+                if (Settings.System.getInt(mContext.getContentResolver(),
+                        Settings.System.POWERMENU_ONEHAND, 1) != 0) {
+                    mItems.add(getOneHandAction());
+                }
             } else {
                 Log.e(TAG, "Invalid global action key " + actionKey);
             }
@@ -826,6 +841,30 @@ class GlobalActionsDialog implements DialogInterface.OnDismissListener,
             @Override
             public boolean showDuringKeyguard() {
                 return true;
+            }
+
+            @Override
+            public boolean showBeforeProvisioning() {
+                return false;
+            }
+        };
+    }
+
+    private Action getOneHandAction() {
+        return new SinglePressAction(com.android.systemui.R.drawable.ic_onehand_mode,
+                R.string.onehand_mode_label) {
+
+            @Override
+            public void onPress() {
+                Intent intent = new Intent();
+                intent.setAction(ACTION_ONEHAND_TRIGGER_EVENT);
+                intent.putExtra(EXTRA_ALIGNMENT_STATE, 1);
+                mContext.sendBroadcast(intent);
+            }
+
+            @Override
+            public boolean showDuringKeyguard() {
+                return false;
             }
 
             @Override
