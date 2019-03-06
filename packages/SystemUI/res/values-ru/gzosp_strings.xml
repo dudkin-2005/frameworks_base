@@ -19,7 +19,7 @@
     <!-- Power menu advanced restart -->
     <string name="global_action_restart_system">Перезагрузка</string>
     <string name="global_action_restart_advanced">Расширенная</string>
-    <string name="global_action_restart_recovery">Восстановление</string>
+    <string name="global_action_restart_recovery">Рекавери</string>
     <string name="global_action_restart_bootloader">Загрузчик</string>
     <string name="global_action_restart_ui">Системный интерфейс</string>
     <!-- Indication on the keyguard that is shown when the device is charging with a dash charger. Should match keyguard_plugged_in_dash_charging [CHAR LIMIT=40]-->
