@@ -58,6 +58,8 @@ public class BaikalServiceManager {
     public static final int SCREEN_BRIGHTNESS_FULL = 11;
     public static final int SCREEN_BRIGHTNESS_AUTO_QUARTER = 12;
 
+    public static final int OP_CAMERA_HAL1 = 1;
+
     private final Context mContext;
     private final IBaikalServiceController mService;
 
@@ -184,6 +186,21 @@ public class BaikalServiceManager {
             e.rethrowFromSystemServer();
         }
     }
+
+    public int getAppOption(String packageName,int option) {
+        try {
+            return mService.getAppOption(packageName,option);
+        } catch (RemoteException e) {
+            e.rethrowFromSystemServer();
+            return 0;
+        }
+    }
+
+    public void setAppOption(String packageName,int option,int value) {
+        try {
+            mService.setAppOption(packageName,option,value);
+        } catch (RemoteException e) {
+            e.rethrowFromSystemServer();
+        }
+    }
 }
-
-
