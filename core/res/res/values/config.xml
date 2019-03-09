@@ -2632,9 +2632,6 @@
         <item>bugreport</item>
         <item>screenshot</item>
         <item>emergency</item>
-        <item>users</item>
-        <item>silent</item>
-        <item>onehand</item>
     </string-array>
 
     <!-- Number of milliseconds to hold a wake lock to ensure that drawing is fully
