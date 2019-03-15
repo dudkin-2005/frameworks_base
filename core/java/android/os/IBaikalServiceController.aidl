@@ -37,4 +37,14 @@ interface IBaikalServiceController {
     void setDefaultThermProfile(String profile);
     int getAppOption(String packageName,int option);
     void setAppOption(String packageName,int option, int value);
+    int getBrightnessOverride();
+
+    boolean isReaderMode();
+    boolean isDeviceIdleMode();
+    boolean isLightDeviceIdleMode();
+    void setDeviceIdleMode(boolean enabled);
+    void setLightDeviceIdleMode(boolean enabled);
+
+    boolean isAggressiveDeviceIdleMode();
+    void setWakefulness(int wakefulness,int reason);
 }

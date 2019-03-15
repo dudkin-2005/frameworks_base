@@ -49,6 +49,9 @@ import android.util.SparseBooleanArray;
 import android.util.SparseSetArray;
 import android.util.proto.ProtoOutputStream;
 
+import android.os.IBaikalServiceController;
+import android.os.BaikalServiceManager;
+
 import com.android.internal.annotations.GuardedBy;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.app.IAppOpsCallback;
@@ -94,7 +97,7 @@ public class AppStateTracker {
     PowerManagerInternal mPowerManagerInternal;
     StandbyTracker mStandbyTracker;
     UsageStatsManagerInternal mUsageStatsManagerInternal;
-    BaikalService mBaikalService;
+    IBaikalServiceController mBaikalService;
 
     private final MyHandler mHandler;
 
@@ -442,7 +445,8 @@ public class AppStateTracker {
             mStandbyTracker = new StandbyTracker();
             mUsageStatsManagerInternal.addAppIdleStateChangeListener(mStandbyTracker);
 
-            mBaikalService = LocalServices.getService(BaikalService.class);
+            mBaikalService = IBaikalServiceController.Stub.asInterface(
+                    ServiceManager.getService(Context.BAIKAL_SERVICE_CONTROLLER));
 
             try {
                 mIActivityManager.registerUidObserver(new UidObserver(),
@@ -483,8 +487,10 @@ public class AppStateTracker {
                 public void onReceive(Context context, Intent intent) {
                     synchronized (mLock) {
                         if( mBaikalService != null ) {
-        	                mDeviceIdleMode = mBaikalService.isDeviceIdleMode();
-                            mAggressiveDeviceIdleMode = mBaikalService.isAggressiveDeviceIdleMode();
+                            try {
+        	                    mDeviceIdleMode = mBaikalService.isDeviceIdleMode();
+                                mAggressiveDeviceIdleMode = mBaikalService.isAggressiveDeviceIdleMode();
+                            } catch (Exception exb) {}
                             Slog.v(TAG, "DeviceIdleMode changed :" + mDeviceIdleMode + "/" + mAggressiveDeviceIdleMode);
                             updateForceAllAppStandbyState();
                         }

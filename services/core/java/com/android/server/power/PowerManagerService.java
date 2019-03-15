@@ -59,6 +59,7 @@ import android.os.Process;
 import android.os.RemoteException;
 import android.os.ResultReceiver;
 import android.os.ShellCallback;
+import android.os.ServiceManager;
 import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.os.Trace;
@@ -107,7 +108,11 @@ import com.android.server.power.batterysaver.BatterySaverController;
 import com.android.server.power.batterysaver.BatterySaverStateMachine;
 import com.android.server.power.batterysaver.BatterySavingStats;
 import com.android.server.LocalServices;
+
+
 import com.android.server.am.BaikalService;
+import android.os.IBaikalServiceController;
+import android.os.BaikalServiceManager;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
@@ -562,6 +567,7 @@ public final class PowerManagerService extends SystemService
     private QCNsrmPowerExtension qcNsrmPowExt;
 
     private BaikalService mBaikalService;
+    private IBaikalServiceController mBaikalManager;
 
     // True if theater mode is enabled
     private boolean mTheaterModeEnabled;
@@ -779,6 +785,8 @@ public final class PowerManagerService extends SystemService
             } else if (phase == PHASE_SYSTEM_SERVICES_READY) {
                 mBaikalService = LocalServices.getService(BaikalService.class);
                 mBaikalService.setPowerManagerService(this);
+
+
             } else if (phase == PHASE_BOOT_COMPLETED) {
                 final long now = SystemClock.uptimeMillis();
                 mBootCompleted = true;
@@ -804,6 +812,10 @@ public final class PowerManagerService extends SystemService
         synchronized (mLock) {
             mSystemReady = true;
             mAppOps = appOps;
+
+            mBaikalManager = IBaikalServiceController.Stub.asInterface(
+                ServiceManager.getService(Context.BAIKAL_SERVICE_CONTROLLER));
+
             mDreamManager = getLocalService(DreamManagerInternal.class);
             mDisplayManagerInternal = getLocalService(DisplayManagerInternal.class);
             mPolicy = getLocalService(WindowManagerPolicy.class);
@@ -943,6 +955,16 @@ public final class PowerManagerService extends SystemService
         filter = new IntentFilter();
         filter.addAction(Intent.ACTION_DOCK_EVENT);
         mContext.registerReceiver(new DockReceiver(), filter, null, mHandler);
+
+        filter = new IntentFilter();
+        filter.addAction(BaikalServiceManager.ACTION_READER_OFF);
+        filter.addAction(BaikalServiceManager.ACTION_READER_ON);
+        mContext.registerReceiver(new ReaderModeReceiver(), filter, null, mHandler);
+
+        filter = new IntentFilter();
+        filter.addAction(BaikalServiceManager.ACTION_BRIGHTNESS_CHANGED);
+        mContext.registerReceiver(new BrightnessOverrideReceiver(), filter, null, mHandler);
+
     }
 
     private void readConfigurationLocked() {
@@ -1663,8 +1685,10 @@ public final class PowerManagerService extends SystemService
             }
             SystemPropertiesSet("power.wakefulness",Integer.toString(mWakefulness));
         
-            if( mBaikalService != null ) {
-                mBaikalService.setWakefulness(wakefulness,reason);
+            if( mBaikalManager != null ) {
+                try {
+                    mBaikalManager.setWakefulness(wakefulness,reason);
+                } catch(Exception exb) {}
             }
         }
     }
@@ -2847,25 +2871,11 @@ public final class PowerManagerService extends SystemService
             return true;
         }
         if (mDisplayPowerRequest.isBrightOrDim()) {
-            if( mBaikalService != null ) {
-                boolean readerModeActive = mBaikalService.isReaderMode();
-                int brightnessOverrideFromBaikalService = mBaikalService.getBrightnessOverride();
-                if( brightnessOverrideFromBaikalService != mBrightnessOverrideFromBaikalService ) {
-                    Slog.d(TAG, "Brightnsess override changed to " + brightnessOverrideFromBaikalService);
-                    mBrightnessOverrideFromBaikalService = brightnessOverrideFromBaikalService;
-                    updateDisplayPowerStateLocked(DIRTY_READER_MODE_CHANGED);   
-                }
-                if( mReaderModeActive != readerModeActive ) {
-                    Slog.d(TAG, "ReaderMode changed to " + readerModeActive);
-                    mReaderModeActive = readerModeActive;
-                    updateDisplayPowerStateLocked(DIRTY_READER_MODE_CHANGED);   
-                }
-                if( readerModeActive ) {   
-                    if( (SystemClock.elapsedRealtime() - lastInteractiveHint) > 1000 ) {
-                        return false;
-                    } else {
-                        Slog.d(TAG, "ReaderMode blocked by user activity");
-                    }
+            if( mReaderModeActive ) {   
+                if( (SystemClock.elapsedRealtime() - lastInteractiveHint) > 1000 ) {
+                    return false;
+                } else {
+                    Slog.d(TAG, "ReaderMode blocked by user activity");
                 }
             }
             // If we asked for the screen to be on but it is off due to the proximity
@@ -3070,8 +3080,10 @@ public final class PowerManagerService extends SystemService
     }
 
     boolean setDeviceIdleModeInternal(boolean enabled) {
-        if( mBaikalService != null ) {
-            mBaikalService.setDeviceIdleMode(enabled);
+        if( mBaikalManager != null ) {
+            try {
+                mBaikalManager.setDeviceIdleMode(enabled);
+            } catch(Exception exb) {}
         }
         synchronized (mLock) {
             if (mDeviceIdleMode == enabled) {
@@ -3089,8 +3101,10 @@ public final class PowerManagerService extends SystemService
     }
 
     boolean setLightDeviceIdleModeInternal(boolean enabled) {
-        if( mBaikalService != null ) {
-            mBaikalService.setLightDeviceIdleMode(enabled);
+        if( mBaikalManager != null ) {
+            try {
+                mBaikalManager.setLightDeviceIdleMode(enabled);
+            }catch(Exception exb) {}
         }
         synchronized (mLock) {
             if (mLightDeviceIdleMode != enabled) {
@@ -4052,6 +4066,42 @@ public final class PowerManagerService extends SystemService
 
     private static WorkSource copyWorkSource(WorkSource workSource) {
         return workSource != null ? new WorkSource(workSource) : null;
+    }
+
+    private final class ReaderModeReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if( mBaikalService != null ) {
+                try {
+                boolean readerModeActive = mBaikalManager.isReaderMode();
+                synchronized (mLock) {
+                    if( mReaderModeActive != readerModeActive ) {
+                        Slog.d(TAG, "ReaderMode changed to " + readerModeActive);
+                        mReaderModeActive = readerModeActive;
+                        updateDisplayPowerStateLocked(DIRTY_READER_MODE_CHANGED);   
+                    }
+                }
+                } catch(Exception exb){}
+            }
+        }
+    }
+
+    private final class BrightnessOverrideReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if( mBaikalService != null ) {
+                try {
+                int brightnessOverrideFromBaikalService = mBaikalManager.getBrightnessOverride();
+                synchronized (mLock) {
+                    if( brightnessOverrideFromBaikalService != mBrightnessOverrideFromBaikalService ) {
+                        Slog.d(TAG, "Brightnsess override changed to " + brightnessOverrideFromBaikalService);
+                        mBrightnessOverrideFromBaikalService = brightnessOverrideFromBaikalService;
+                        updateDisplayPowerStateLocked(DIRTY_READER_MODE_CHANGED);   
+                    }
+                }
+                }catch(Exception exb) {}
+            }
+        }
     }
 
     private final class BatteryReceiver extends BroadcastReceiver {
