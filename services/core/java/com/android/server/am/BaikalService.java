@@ -141,6 +141,8 @@ public class BaikalService extends SystemService {
     private static final int MESSAGE_DEVICE_IDLE_CHANGED = 100;
     private static final int MESSAGE_LIGHT_DEVICE_IDLE_CHANGED = 101;
 
+    private static final int MESSAGE_TOP_APP_CHANGED = 150;
+
     private static final int MESSAGE_PROXIMITY_WAKELOCK_TIMEOUT = 200;
 
     private static final int MESSAGE_WRITE_CONFIG = 900;
@@ -409,6 +411,9 @@ public class BaikalService extends SystemService {
                 } break;
                 case MESSAGE_WAKEFULNESS_CHANGED: {
                     onWakefulnessChanged();
+                } break;
+                case MESSAGE_TOP_APP_CHANGED: {
+                    onTopAppChanged();
                 } break;
 
             }
@@ -1541,8 +1546,27 @@ public class BaikalService extends SystemService {
 
 
     int currentUid=-1, currentWakefulness=-1;
+    int mTopAppUid;
+    String mTopAppPackageName;
     public void topAppChanged(ActivityRecord act) {
-        if( act == null ) {
+        mTopAppUid = -1;
+        mTopAppPackageName = null;
+        if( act != null ) {
+            mTopAppUid = act.info.applicationInfo.uid;
+            mTopAppPackageName = act.packageName;
+        }
+
+        mHandler.sendEmptyMessage(MESSAGE_TOP_APP_CHANGED);
+    }
+
+    private void onTopAppChanged() {
+        onTopAppChangedLocked();
+    }
+
+    
+    private void onTopAppChangedLocked() {
+   
+        if( mTopAppUid == -1 ) {
             if( DEBUG_PROFILE ) {
                 Slog.i(TAG,"topAppChanged: empty top activity");
             }
@@ -1555,34 +1579,24 @@ public class BaikalService extends SystemService {
             return;
         }
 
-        String pkg;
-        int uid;
-        if (act != null) {
-            pkg = act.packageName;
-            uid = act.info.applicationInfo.uid;
-        } else {
-            pkg = null;
-            uid = -1;
-        }
 
-
-        if( currentUid == uid && currentWakefulness == getWakefulnessLocked() ) {
+        if( currentUid == mTopAppUid && currentWakefulness == getWakefulnessLocked() ) {
             return;
         }
 
-        currentUid = uid;    
+        currentUid = mTopAppUid;    
         currentWakefulness = getWakefulnessLocked();
         if( currentWakefulness == 0 ) {
             return;
         }
 
         if( DEBUG_PROFILE ) {
-            Slog.i(TAG,"topAppChanged: top activity=" + act.packageName);
+            Slog.i(TAG,"topAppChanged: top activity=" + mTopAppPackageName);
         }
 
         ApplicationProfileInfo info = null;
         synchronized(mProfileSync) {
-            info = getAppProfileLocked(act.packageName);
+            info = getAppProfileLocked(mTopAppPackageName);
         }
 
         if( info == null ) {
