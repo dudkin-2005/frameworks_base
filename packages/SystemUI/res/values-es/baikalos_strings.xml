@@ -28,6 +28,7 @@
     <!-- Screenrecord -->
     <string name="quick_settings_screenrecord_label">Grabación de pantalla</string>
     <!-- ANBI Tile -->
+    <string name="quick_settings_anbi_label">Toque Accidental</string>
     <!-- Volume panel QS tile -->
     <!-- Sleep Screen QS tile -->
     <!-- Sound QS Tile -->
