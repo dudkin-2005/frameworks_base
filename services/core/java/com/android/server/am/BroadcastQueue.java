@@ -39,6 +39,7 @@ import android.content.IntentSender;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -865,7 +866,19 @@ public final class BroadcastQueue {
                         + target + ": " + r);
 
 
-                int allowed = ActivityManager.APP_START_MODE_NORMAL;
+                //int allowed = ActivityManager.APP_START_MODE_NORMAL;
+                int targetSdkVersion = Build.VERSION_CODES.O;
+                if( ((BroadcastFilter)target).receiverList.app != null ) {
+                    if( ((BroadcastFilter)target).receiverList.app.info != null ) {
+                        targetSdkVersion = ((BroadcastFilter)target).receiverList.app.info.targetSdkVersion;
+                    }
+                }
+    
+                int allowed = mService.getAppStartModeLocked(
+                    ((BroadcastFilter)target).receiverList.uid,
+                    ((BroadcastFilter)target).packageName,
+                    targetSdkVersion, -1, true, false, mService.mDeviceIdleMode);
+
 
                 if( mService.mBaikalService != null ) {
                     if( mService.mBaikalService.isBroadcastFilterWhitelisted(r, (BroadcastFilter)target) ) {
@@ -881,7 +894,16 @@ public final class BroadcastQueue {
                             filter.packageName,filter.owningUid, -1, r.intent.toString());
                 }
 
-                deliverToRegisteredReceiverLocked(r, (BroadcastFilter)target, false, i);
+
+                if( allowed == ActivityManager.APP_START_MODE_DISABLED ||
+                    allowed == ActivityManager.APP_START_MODE_DELAYED ) {
+                    Slog.v(TAG_BROADCAST,
+                        "Delivering of non-ordered broadcast disabled for "
+                        + target + ": " + r);
+                    r.delivery[i] = BroadcastRecord.DELIVERY_SKIPPED;
+                } else {
+                    deliverToRegisteredReceiverLocked(r, (BroadcastFilter)target, false, i);
+                }
             }
             addBroadcastToHistoryLocked(r);
             if (DEBUG_BROADCAST_LIGHT) Slog.v(TAG_BROADCAST, "Done with parallel broadcast ["
