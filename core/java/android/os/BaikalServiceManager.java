@@ -34,21 +34,17 @@ public class BaikalServiceManager {
     public static final String ACTION_READER_ON = "ACTION_READER_ON";
     public static final String ACTION_READER_OFF = "ACTION_READER_OFF";
 
+    public static final String ACTION_EXTREME_SAVER_ON = "ACTION_EXTREME_SAVER_ON";
+    public static final String ACTION_EXTREME_SAVER_OFF = "ACTION_EXTREME_SAVER_OFF";
+
     public static final String ACTION_BRIGHTNESS_CHANGED = "ACTION_BRIGHTNESS_CHANGED";
 
 
-    public static final int PRIO_CRITICAL = 0;
-    public static final int PRIO_SYSTEM = 1;
+    public static final int PRIO_REGULAR = 0;
+    public static final int PRIO_GAME = 1;
     public static final int PRIO_UNRESTRICTED = 2;
-    public static final int PRIO_ALARM_CLOCK = 3;
-    public static final int PRIO_BACKGROUND_NOTIFICATIONS = 3;
-    public static final int PRIO_BACKGROUND_NAVIGATION = 4;
-    public static final int PRIO_MESSENGER = 3;
-    public static final int PRIO_REGULAR = 5;
-    public static final int PRIO_GAME = 5;
-    public static final int PRIO_BOOKREADER = 3;
-    public static final int PRIO_RESTRICTED = 5;
-    public static final int PRIO_TOP_ONLY = 5;
+    public static final int PRIO_RESTRICTED = 3;
+    public static final int PRIO_TOP_ONLY = 4;
 
     public static final int SCREEN_BRIGHTNESS_DEFAULT = 0;
     public static final int SCREEN_BRIGHTNESS_10 = 1;
@@ -65,6 +61,12 @@ public class BaikalServiceManager {
     public static final int SCREEN_BRIGHTNESS_AUTO_QUARTER = 12;
 
     public static final int OP_CAMERA_HAL1 = 1;
+    public static final int OP_EXCLUDED_FROM_EXTREME = 2;
+
+    public static final int CHECK_RESTRICT_ALARM = 1;
+    public static final int CHECK_RESTRICT_SYNC = 2;
+    public static final int CHECK_RESTRICT_JOB = 3;
+    public static final int CHECK_RESTRICT_SERVICE = 4;
 
     private final Context mContext;
     private final IBaikalServiceController mService;
@@ -282,4 +284,21 @@ public class BaikalServiceManager {
         }
     }
 
+    boolean isExtremeSaverActive() {
+        try {
+            return mService.isExtremeSaverActive();
+        } catch (RemoteException e) {
+            e.rethrowFromSystemServer();
+            return false;
+        }
+    }
+
+    int isRestrictedApp(int requestId, int uid, String packageName, boolean useTempWhitelistToo, boolean exemptOnBatterySaver) {
+        try {
+            return mService.isRestrictedApp(requestId,uid,packageName,useTempWhitelistToo,exemptOnBatterySaver);
+        } catch (RemoteException e) {
+            e.rethrowFromSystemServer();
+            return 0;
+        }
+    }
 }

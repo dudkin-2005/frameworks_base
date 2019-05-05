@@ -11912,6 +11912,21 @@ public final class Settings {
                 BOOLEAN_VALIDATOR;
 
 
+        /** @hide */
+        public static final String BAIKAL_EXTREME_SAVER_ACTIVE = "baikal_extreme_saver_active";
+
+        /** @hide */
+        private static final Validator BAIKAL_EXTREME_SAVER_ACTIVE_VALIDATOR =
+                BOOLEAN_VALIDATOR;
+
+
+        /** @hide */
+        public static final String BAIKAL_EXTREME_SAVER_ENABLED = "baikal_extreme_saver_enabled";
+
+        /** @hide */
+        private static final Validator BAIKAL_EXTREME_SAVER_ENABLED_VALIDATOR =
+                BOOLEAN_VALIDATOR;
+
         /**
          * Battery Saver specific settings
          * This is encoded as a key=value list, separated by commas. Ex:

@@ -511,9 +511,9 @@ public final class ActiveServices {
                     // it under strict background restrictions.  Don't punish the app if it's
                     // trying to do the right thing but we're denying it for that reason.
                     if (fgRequired) {
-                        if (DEBUG_BACKGROUND_CHECK) {
+                        //if (DEBUG_BACKGROUND_CHECK) {
                             Slog.v(TAG, "Silently dropping foreground service launch due to FAS");
-                        }
+                        //}
                         r.stopIfKilled = true;
                         return null;
                     }
@@ -722,7 +722,7 @@ public final class ActiveServices {
         return r.name;
     }
 
-    private void stopServiceLocked(ServiceRecord service) {
+    void stopServiceLocked(ServiceRecord service) {
         if (service.delayed) {
             // If service isn't actually running, but is is being held in the
             // delayed list, then we need to keep it started but note that it
@@ -2772,7 +2772,7 @@ public final class ActiveServices {
         bringDownServiceLocked(r);
     }
 
-    private final void bringDownServiceLocked(ServiceRecord r) {
+    void bringDownServiceLocked(ServiceRecord r) {
         //Slog.i(TAG, "Bring down service:");
         //r.dump("  ");
 

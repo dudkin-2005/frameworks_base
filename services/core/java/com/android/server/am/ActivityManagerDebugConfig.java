@@ -33,7 +33,7 @@ class ActivityManagerDebugConfig {
     // While debugging it is sometimes useful to have the category name of the log appended to the
     // base log tag to make sifting through logs with the same base tag easier. By setting this
     // constant to true, the category name of the log point will be appended to the log tag.
-    static final boolean APPEND_CATEGORY_NAME = false;
+    static final boolean APPEND_CATEGORY_NAME = true;
 
     // Default log tag for the activity manager package.
     static final String TAG_AM = "ActivityManager";
@@ -56,7 +56,7 @@ class ActivityManagerDebugConfig {
     static final boolean DEBUG_CLEANUP = DEBUG_ALL || false;
     static final boolean DEBUG_CONFIGURATION = DEBUG_ALL || false;
     static final boolean DEBUG_CONTAINERS = DEBUG_ALL_ACTIVITIES || false;
-    static final boolean DEBUG_FOCUS = false;
+    static final boolean DEBUG_FOCUS = DEBUG_ALL_ACTIVITIES || false;
     static final boolean DEBUG_IDLE = DEBUG_ALL_ACTIVITIES || false;
     static final boolean DEBUG_IMMERSIVE = DEBUG_ALL || false;
     static final boolean DEBUG_LOCKTASK = DEBUG_ALL || false;

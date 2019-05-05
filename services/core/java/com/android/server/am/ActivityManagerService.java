@@ -25271,13 +25271,13 @@ public class ActivityManagerService extends IActivityManager.Stub
             if (!app.killedByAm && app.thread != null) {
                 applyOomAdjLocked(app, true, now, nowElapsed);
 
-                boolean kill = false;
+                int kill = 0;
                 if( mBaikalService != null ) {
                     kill = mBaikalService.killByOOM(app, TOP_APP, mHomeProcess, mPreviousProcess);
                 }
-                if( kill ) {
+                if( kill == 2 ) {
                     app.kill("by baikalos service", true);
-                } else {
+                } else if (kill == 0) {
 
                     // Count the number of process types.
                     switch (app.curProcState) {

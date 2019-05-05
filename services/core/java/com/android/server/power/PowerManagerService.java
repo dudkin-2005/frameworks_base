@@ -2636,6 +2636,7 @@ public final class PowerManagerService extends SystemService
                 autoBrightness = false;
                 screenBrightnessOverride = mScreenBrightnessOverrideFromWindowManager;
             } else if (mBrightnessOverrideFromBaikalService <= -2 ) {
+                Slog.d(TAG, "updateDisplayPowerStateLocked: (1) lowPowerMode=" + mDisplayPowerRequest.lowPowerMode);
                 mDisplayPowerRequest.lowPowerMode = true;
                 autoBrightness = (mScreenBrightnessModeSetting ==
                         Settings.System.SCREEN_BRIGHTNESS_MODE_AUTOMATIC);
@@ -2659,11 +2660,13 @@ public final class PowerManagerService extends SystemService
 
             if( mBrightnessOverrideFromBaikalService == -2 ) {
                 mDisplayPowerRequest.screenLowPowerBrightnessFactor = 0.5f;
+                Slog.d(TAG, "updateDisplayPowerStateLocked: (2) lowPowerMode=" + mDisplayPowerRequest.lowPowerMode);
                 mDisplayPowerRequest.lowPowerMode = true;
             }
 
             if( mBrightnessOverrideFromBaikalService == -3 ) {
                 mDisplayPowerRequest.screenLowPowerBrightnessFactor = 0.25f;
+                Slog.d(TAG, "updateDisplayPowerStateLocked: (3) lowPowerMode=" + mDisplayPowerRequest.lowPowerMode);
                 mDisplayPowerRequest.lowPowerMode = true;
             }
 
@@ -2693,11 +2696,11 @@ public final class PowerManagerService extends SystemService
                 mDisplayPowerRequest.dozeScreenBrightness = PowerManager.BRIGHTNESS_DEFAULT;
             }
 
-            if( mReaderModeActive && mWakefulness == WAKEFULNESS_AWAKE ) {
+/*            if( mReaderModeActive && mWakefulness == WAKEFULNESS_AWAKE ) {
                 mDisplayPowerRequest.policy = DisplayPowerRequest.POLICY_DOZE;
                 mDisplayPowerRequest.dozeScreenState = Display.STATE_DOZE;
                 mDisplayPowerRequest.dozeScreenBrightness = -1;
-            }
+            }*/
 
             onDisplayPowerRequest(mDisplayPowerRequest, mPrevDisplayPowerRequest); 
             mDisplayReady = mDisplayManagerInternal.requestPowerState(mDisplayPowerRequest,
@@ -2954,11 +2957,7 @@ public final class PowerManagerService extends SystemService
         if (!mDisplayReady) {
             return true;
         }
-        if (mDisplayPowerRequest.isBrightOrDim() || 
-            mDisplayPowerRequest.policy == DisplayPowerRequest.POLICY_DOZE ) {
-            if( mReaderModeActive ) {   
-                return false;
-            }
+        if (mDisplayPowerRequest.isBrightOrDim()) {
             // If we asked for the screen to be on but it is off due to the proximity
             // sensor then we may suspend but only if the configuration allows it.
             // On some hardware it may not be safe to suspend because the proximity
@@ -3548,6 +3547,9 @@ public final class PowerManagerService extends SystemService
 
     private void powerHintInternal(int hintId, int data) {
         // Maybe filter the event.
+        if( hintId == PowerHint.LOW_POWER ) {
+            mBaikalService.setLowPowerState(data);
+        }
         nativeSendPowerHint(hintId, data);
     }
 

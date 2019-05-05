@@ -2116,7 +2116,7 @@ public class DeviceIdleController extends SystemService
     }
 
     void updateReaderModeLocked() {
-        
+        /*
         try {
         boolean isReaderMode = mBaikalService.isReaderMode();
         if (DEBUG) Slog.d(TAG, "updateReaderModeLocked: isReaderMode=" + isReaderMode);
@@ -2132,6 +2132,7 @@ public class DeviceIdleController extends SystemService
             }
         }
         } catch(Exception exb) {}
+        */
     }
 
     void updateInteractivityLocked() {

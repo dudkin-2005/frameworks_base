@@ -47,4 +47,8 @@ interface IBaikalServiceController {
 
     boolean isAggressiveDeviceIdleMode();
     void setWakefulness(int wakefulness,int reason);
+
+    boolean isExtremeSaverActive();
+
+    int isRestrictedApp(int requestId, int uid, String packageName, boolean useTempWhitelistToo, boolean exemptOnBatterySaver);
 }
