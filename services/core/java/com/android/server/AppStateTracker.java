@@ -488,7 +488,7 @@ public class AppStateTracker {
                     synchronized (mLock) {
                         if( mBaikalService != null ) {
                             try {
-        	                    mDeviceIdleMode = mBaikalService.isDeviceIdleMode();
+        	                mDeviceIdleMode = mBaikalService.isDeviceIdleMode();
                                 mAggressiveDeviceIdleMode = mBaikalService.isAggressiveDeviceIdleMode();
                             } catch (Exception exb) {}
                             Slog.v(TAG, "DeviceIdleMode changed :" + mDeviceIdleMode + "/" + mAggressiveDeviceIdleMode);
@@ -579,7 +579,7 @@ public class AppStateTracker {
             if (mForceAllAppStandbyForSmallBattery && isSmallBatteryDevice()) {
                 toggleForceAllAppsStandbyLocked(!mIsPluggedIn);
             } else {
-                toggleForceAllAppsStandbyLocked( !mIsPluggedIn && (mBatterySaverEnabled || mAggressiveDeviceIdleMode ));
+                toggleForceAllAppsStandbyLocked(!mIsPluggedIn && (mBatterySaverEnabled || (mAggressiveDeviceIdleMode && mDeviceIdleMode) ));
             }
         }
     }
@@ -1141,11 +1141,11 @@ public class AppStateTracker {
                     ArrayUtils.contains(mTempWhitelistedAppIds, appId)) {
                 return false;
             }
-            if (mForcedAppStandbyEnabled && isRunAnyRestrictedLocked(uid, packageName)) {
-                return true;
-            }
             if (ArrayUtils.contains(mPowerWhitelistedAllAppIds, appId)) {
                 return false;
+            }
+            if (mForcedAppStandbyEnabled && isRunAnyRestrictedLocked(uid, packageName)) {
+                return true;
             }
             if (exemptOnBatterySaver) {
                 return false;
