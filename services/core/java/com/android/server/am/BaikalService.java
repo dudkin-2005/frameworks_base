@@ -175,6 +175,8 @@ public class BaikalService extends SystemService {
     private int mWakefulnessReason;
     private String mLastWakeupReason;
     private String mLastSleepReason;
+    private boolean mSleeping;
+
     private boolean mTorchLongPressPowerEnabled;
     private boolean mTorchIncomingCall;
     private boolean mTorchNotification;
@@ -1466,6 +1468,8 @@ public class BaikalService extends SystemService {
 	    return 1;
 	}
 
+	if( isAppPackageWhitelisted(app.info.packageName) ) return 0;
+
 	int restriction = isAppRestricted(app.info.uid, app.info.packageName) ;
         if( restriction == 1 ) return 1;
         if( restriction == 0 ) return 0;
@@ -1541,6 +1545,15 @@ public class BaikalService extends SystemService {
         }
     }
 
+    public boolean isAppPackageWhitelisted(String packageName) {
+	if( packageName.startsWith("com.android.") ) return true;
+	if( packageName.startsWith("com.qualcomm.") ) return true;
+	if( packageName.startsWith("com.qti.") ) return true;
+	if( packageName.startsWith("org.codeaurora.ims") ) return true;
+	if( packageName.startsWith("ru.baikalos.") ) return true;
+	return false;
+    }
+
     public int isAppRestricted(int uid, String packageName) {
         synchronized(mWhitelistSync) {
             if( Arrays.binarySearch(mDeviceIdleWhitelist, uid) >= 0) return 1;
@@ -1601,7 +1614,7 @@ public class BaikalService extends SystemService {
     }
 
     public boolean isExtremeSaverActiveLocked() {
-        return false;
+        return mExtremeSaverActive;
     }
 
     public boolean isDeviceIdleModeLocked() {
@@ -1646,6 +1659,19 @@ public class BaikalService extends SystemService {
     private void onLightDeviceIdleModeChanged() {
     }
 
+
+    private void updateSleepStateLocked() {
+	final int wakefulness = getWakefulnessLocked();
+	if( wakefulness != 1 && !mSleeping ) {
+	    mSleeping = true;
+	    onSleepStateChangedLocked(mSleeping);
+	} else if(  wakefulness == 1 && mSleeping ) {
+	    mSleeping = false;
+	    onSleepStateChangedLocked(mSleeping);
+	}
+    }
+	
+
     public void setWakefulnessLocked(int wakefulness, int reason) {
         mWakefulness = wakefulness;
         mWakefulnessReason = reason;
@@ -1681,13 +1707,16 @@ public class BaikalService extends SystemService {
         }
     }
 
+    private void onWakefulnessChanged() {
+	updateSleepStateLocked();
+    }
 
     private String awakePerformanceProfile = "default"; 
     private String awakeThermalProfile = "default"; 
-    private void onWakefulnessChanged() {
 
+    private void onSleepStateChangedLocked(boolean sleeping) {
         if( DEBUG_PROFILE ) {
-            Slog.i(TAG,"onWakefulnessChanged");
+            Slog.i(TAG,"onSleepStateChangedLocked");
         }
 
         synchronized(mCurrentProfileSync) {
@@ -1724,6 +1753,15 @@ public class BaikalService extends SystemService {
 
     
     private void onTopAppChangedLocked() {
+
+        currentWakefulness = getWakefulnessLocked();
+        if( currentWakefulness != 1 ) {
+            return;
+        }
+
+        if( currentUid == mTopAppUid && currentWakefulness == getWakefulnessLocked() ) {
+            return;
+        }
    
         if( mTopAppUid == -1 ) {
             if( DEBUG_PROFILE ) {
@@ -1739,15 +1777,7 @@ public class BaikalService extends SystemService {
         }
 
 
-        if( currentUid == mTopAppUid && currentWakefulness == getWakefulnessLocked() ) {
-            return;
-        }
-
         currentUid = mTopAppUid;    
-        currentWakefulness = getWakefulnessLocked();
-        if( currentWakefulness != 1 ) {
-            return;
-        }
 
         if( DEBUG_PROFILE ) {
             Slog.i(TAG,"topAppChanged: top activity=" + mTopAppPackageName);
