@@ -790,6 +790,7 @@ public final class PowerManagerService extends SystemService
             } else if (phase == PHASE_BOOT_COMPLETED) {
                 final long now = SystemClock.uptimeMillis();
                 mBootCompleted = true;
+                mPlugType = -1;
                 mDirty |= DIRTY_BOOT_COMPLETED;
 
                 mBatterySaverStateMachine.onBootCompleted();
@@ -3382,7 +3383,10 @@ public final class PowerManagerService extends SystemService
                                     != ActivityManager.PROCESS_STATE_NONEXISTENT &&
                             wakeLock.mUidState.mProcState > ActivityManager.PROCESS_STATE_RECEIVER;
                 }
-                if (mDeviceIdleMode || mReaderModeActive) {
+                if (mDeviceIdleMode ||
+                    mReaderModeActive || 
+                    wakeLock.mTag.startsWith("*sync*") ||
+                    wakeLock.mTag.startsWith("*job*") ) {
                     // If we are in idle mode, we will also ignore all partial wake locks that are
                     // for application uids that are not whitelisted.
                     final UidState state = wakeLock.mUidState;
