@@ -26,6 +26,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.ContentResolver;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
@@ -64,6 +65,10 @@ import com.android.server.DeviceIdleController;
 import com.android.server.AlarmManagerService;
 import com.android.server.AppOpsService;
 import com.android.server.SystemService;
+
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+
 
 import android.os.Environment;
 import android.os.FileUtils;
@@ -129,6 +134,7 @@ import android.provider.Settings;
 
 import java.util.List;
 
+// Changed from VSCode
 
 public class BaikalService extends SystemService {
 
@@ -143,12 +149,15 @@ public class BaikalService extends SystemService {
     private static final int MESSAGE_LIGHT_DEVICE_IDLE_CHANGED = 101;
 
     private static final int MESSAGE_TOP_APP_CHANGED = 150;
+    private static final int MESSAGE_BRIGHTNESS_CHANGED = 151;
 
     private static final int MESSAGE_PROXIMITY_WAKELOCK_TIMEOUT = 200;
 
     private static final int MESSAGE_WRITE_CONFIG = 900;
 
     private static final int MESSAGE_WAKEFULNESS_CHANGED = 300;
+
+
 
     private final String [] mGoogleServicesIdleBlackListed = {
         "com.google.android.location.geocode.GeocodeService",
@@ -352,9 +361,38 @@ public class BaikalService extends SystemService {
                 setThermalProfile("default");
                 mCurrentThermalProfile = "";
                 mCurrentPerformanceProfile = "";
+
+
+                IntentFilter btFilter = new IntentFilter();
+                btFilter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
+                btFilter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+                btFilter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED);
+                mContext.registerReceiver(mBluetoothReceiver, btFilter);
             }
 
         }
+    }
+
+    private final BroadcastReceiver mBluetoothReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            synchronized (BaikalService.this) {
+                String action = intent.getAction();
+                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
+                    updateBluetoothDeviceState(0,device);
+                } else if(BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
+                    updateBluetoothDeviceState(1,device);
+                } else if(BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED.equals(action)) {
+                    updateBluetoothDeviceState(2,device);
+                }
+            }
+        }
+    };
+
+
+    private void updateBluetoothDeviceState(int state, BluetoothDevice device) {
+        Slog.i(TAG,"updateBluetoothDeviceState: state=" + state + ", device=" + device);                
     }
 
     public void setAlarmManagerService(AlarmManagerService service) {
@@ -425,7 +463,9 @@ public class BaikalService extends SystemService {
                 case MESSAGE_TOP_APP_CHANGED: {
                     onTopAppChanged();
                 } break;
-
+                case MESSAGE_BRIGHTNESS_CHANGED:{
+                    onBrightnessChanged();
+                } break;
             }
         }
     }
@@ -1365,9 +1405,9 @@ public class BaikalService extends SystemService {
     }
     
     public boolean isServiceBlacklisted(ServiceRecord service, int callingUid, int callingPid, String callingPackageName, boolean isStarting) {
-            if( DEBUG ) {
-                Slog.i(TAG,"isServiceBlacklisted: from " + callingPackageName + "/" + callingUid + "/" + callingPid + " to " + service.name.getClassName());
-            }
+        if( DEBUG ) {
+            Slog.i(TAG,"isServiceBlacklisted: from " + callingPackageName + "/" + callingUid + "/" + callingPid + " to " + service.name.getClassName());
+        }
 
 	    if( isGmsUid(service.appInfo.uid) && mExtremeSaverActive ) {
 	        if( service.name.getClassName().contains(".gcm") ||
@@ -1376,32 +1416,32 @@ public class BaikalService extends SystemService {
 		    service.name.getClassName().contains(".wearable") ||
 		    service.name.getClassName().contains(".chimera") || 
 		    service.name.getClassName().contains(".auth") ) {
-			return false;
-		} else {
-		    return true;
-		}
+			    return false;
+		    } else {
+		        return true;
+		    }
 	    }
 
-            if( !mDeviceIdleMode && !mApplyRestrictionsScreenOn) {
-                if( DEBUG ) {
-                    Slog.i(TAG,"GmsService: unblocked (not idle):" + service.name.getClassName());
-                }
-                return false; 
+        if( !mDeviceIdleMode && !mApplyRestrictionsScreenOn) {
+            if( DEBUG ) {
+                Slog.i(TAG,"GmsService: unblocked (not idle):" + service.name.getClassName());
             }
+            return false; 
+        }
 
-            if( isAppRestricted(service.appInfo.uid, service.appInfo.packageName) == 2 ) return true;
-            if( !isGmsUid(service.appInfo.uid) ) return false;
-            if( mDeviceIdleMode ) {
-                for( String srv:mGoogleServicesIdleBlackListed ) {
-                    if( service.name.getClassName().equals(srv) ) {
-                        if( DEBUG ) {
-                            Slog.i(TAG,"GmsService: restricted:" + service.name.getClassName());
-                        }
-                        return true;
-                    } 
-                }
+        if( isAppRestricted(service.appInfo.uid, service.appInfo.packageName) == 2 ) return true;
+        if( !isGmsUid(service.appInfo.uid) ) return false;
+        if( mDeviceIdleMode ) {
+            for( String srv:mGoogleServicesIdleBlackListed ) {
+                if( service.name.getClassName().equals(srv) ) {
+                    if( DEBUG ) {
+                        Slog.i(TAG,"GmsService: restricted:" + service.name.getClassName());
+                    }
+                    return true;
+                } 
             }
-            return false;
+        }
+        return false;
     }
 
 
@@ -1410,77 +1450,72 @@ public class BaikalService extends SystemService {
         if( app == top_app ) return 1;
         if( app == home_app ) return 1;
         if( app.info.uid < Process.FIRST_APPLICATION_UID  ) return 0;
-	if( !mExtremeSaverActive ) {
+	    if( !mExtremeSaverActive ) {
             if( getWakefulnessLocked() == 1 ) return 0;
-	    if( !mIdleAggressive ) return 0;
-	    if( !mDeviceIdleMode ) return 0;
-	}
+	        if( !mIdleAggressive ) return 0;
+	        if( !mDeviceIdleMode ) return 0;
+	    }
 
         if( isGmsUid(app.info.uid) ) { 
-	    if( mDeviceIdleMode || mExtremeSaverActive ) {
-
-	        ArrayList<ServiceRecord> stopping = null;
-
+	        if( (mDeviceIdleMode && mIdleAggressive) || mExtremeSaverActive ) {
+	            ArrayList<ServiceRecord> stopping = null;
                 try {
                     for (int is = app.services.size()-1;is >= 0; is--) {
                         ServiceRecord s = app.services.valueAt(is);
-			if( mExtremeSaverActive ) {
-			    if( s.name.getClassName().contains(".gcm") ||
-				s.name.getClassName().contains(".fcm") ||
-				s.name.getClassName().contains(".deviceconnection") ||
-				s.name.getClassName().contains(".wearable") ||
-				s.name.getClassName().contains(".chimera") || 
-				s.name.getClassName().contains(".auth") ) {
-			    } else {
+			            if( mExtremeSaverActive ) {
+			                if( s.name.getClassName().contains(".gcm") ||
+				                s.name.getClassName().contains(".fcm") ||
+				                s.name.getClassName().contains(".deviceconnection") ||
+				                s.name.getClassName().contains(".wearable") ||
+				                s.name.getClassName().contains(".chimera") || 
+				                s.name.getClassName().contains(".auth") ) {
+			                } else {
                                 if (stopping == null) {
                                     stopping = new ArrayList<>();
                                 }
                                 stopping.add(s);
-			    }
-			 
-			} else {
-			    if( !isServiceWhitelisted(s,app.info.uid,app.pid,app.info.packageName,false) ) {
-
+			                }
+			            } else {
+			                if( !isServiceWhitelisted(s,app.info.uid,app.pid,app.info.packageName,false) ) {
                                 if (stopping == null) {
                                     stopping = new ArrayList<>();
                                 }
                                 stopping.add(s);
-			    }
+            			    }
                         }
                     } 
-
-	            if (stopping != null) {
-        	        for (int i=stopping.size()-1; i>=0; i--) {
-                	    ServiceRecord service = stopping.get(i);
-	                    service.delayed = false;
-	                    service.stopIfKilled = true;
+	                if (stopping != null) {
+        	            for (int i=stopping.size()-1; i>=0; i--) {
+                	        ServiceRecord service = stopping.get(i);
+    	                    service.delayed = false;
+	                        service.stopIfKilled = true;
 	                    
-	                    try {
-	                        mActivityManagerService.mServices.bringDownServiceLocked(service);
-	                    } catch(Exception e) {
+	                        try {
+    	                        mActivityManagerService.mServices.bringDownServiceLocked(service);
+	                        } catch(Exception e) {
+	                        }
 	                    }
-	                }
-        	    }
-
+        	        }
                 } catch (Exception e) {
                 }
+	        }
+	        return 1;
 	    }
-	    return 1;
-	}
 
-	if( isAppPackageWhitelisted(app.info.packageName) ) return 0;
+    	if( isAppPackageWhitelisted(app.info.packageName) ) return 1;
 
-	int restriction = isAppRestricted(app.info.uid, app.info.packageName) ;
+    	int restriction = isAppRestricted(app.info.uid, app.info.packageName) ;
         if( restriction == 1 ) return 1;
         if( restriction == 0 ) return 0;
 
         switch (app.curProcState) {
-            /*case ActivityManager.PROCESS_STATE_BOUND_FOREGROUND_SERVICE:
+            case ActivityManager.PROCESS_STATE_BOUND_FOREGROUND_SERVICE:
             case ActivityManager.PROCESS_STATE_FOREGROUND_SERVICE:
             case ActivityManager.PROCESS_STATE_IMPORTANT_FOREGROUND:
             case ActivityManager.PROCESS_STATE_IMPORTANT_BACKGROUND:
             case ActivityManager.PROCESS_STATE_TRANSIENT_BACKGROUND:
-            case ActivityManager.PROCESS_STATE_BACKUP: */
+            case ActivityManager.PROCESS_STATE_BACKUP:
+                if( !mDeviceIdleMode && !mExtremeSaverActive ) break;
             case ActivityManager.PROCESS_STATE_HEAVY_WEIGHT:
             case ActivityManager.PROCESS_STATE_RECEIVER:
             case ActivityManager.PROCESS_STATE_SERVICE:
@@ -1546,12 +1581,12 @@ public class BaikalService extends SystemService {
     }
 
     public boolean isAppPackageWhitelisted(String packageName) {
-	if( packageName.startsWith("com.android.") ) return true;
-	if( packageName.startsWith("com.qualcomm.") ) return true;
-	if( packageName.startsWith("com.qti.") ) return true;
-	if( packageName.startsWith("org.codeaurora.ims") ) return true;
-	if( packageName.startsWith("ru.baikalos.") ) return true;
-	return false;
+	    if( packageName.startsWith("com.android.") ) return true;
+	    if( packageName.startsWith("com.qualcomm.") ) return true;
+	    if( packageName.startsWith("com.qti.") ) return true;
+	    if( packageName.startsWith("org.codeaurora.ims") ) return true;
+	    if( packageName.startsWith("ru.baikalos.") ) return true;
+	    return false;
     }
 
     public int isAppRestricted(int uid, String packageName) {
@@ -1560,26 +1595,26 @@ public class BaikalService extends SystemService {
             if( Arrays.binarySearch(mDeviceIdleTempWhitelist, uid) >= 0) return 1;
         }
 
-	int priority = getAppPriorityInternal(packageName);
-	switch(priority)
-	{
-	    case BaikalServiceManager.PRIO_UNRESTRICTED:
-		return 1;
-	    case BaikalServiceManager.PRIO_REGULAR:
-		if( mExtremeSaverActive ) return 2;
-	    case BaikalServiceManager.PRIO_GAME:
-		break;
-	    case BaikalServiceManager.PRIO_RESTRICTED:
-	    case BaikalServiceManager.PRIO_TOP_ONLY:
-		return 2;
-	}
+	    int priority = getAppPriorityInternal(packageName);
+	    switch(priority)
+	    {
+	        case BaikalServiceManager.PRIO_UNRESTRICTED:
+		        return 1;
+	        case BaikalServiceManager.PRIO_REGULAR:
+		        if( mExtremeSaverActive ) return 2;
+	        case BaikalServiceManager.PRIO_GAME:
+		        break;
+	        case BaikalServiceManager.PRIO_RESTRICTED:
+	        case BaikalServiceManager.PRIO_TOP_ONLY:
+		        return 2;
+	    }
 
         if( mAppOpsService == null ) return 0;
         final int mode = mAppOpsService.checkOperation(AppOpsManager.OP_RUN_ANY_IN_BACKGROUND,
                 uid, packageName);
 
         if( mode != AppOpsManager.MODE_ALLOWED ) return 2;
-	return 0;
+	    return 0;
     }
 
 
@@ -1901,8 +1936,13 @@ public class BaikalService extends SystemService {
             mBrightnessOverride = -1;
         }
         //mContext.sendBroadcast(mBrightnessOverrideIntent);
-    }
+        Message msg = mHandler.obtainMessage(MESSAGE_BRIGHTNESS_CHANGED);
+        mHandler.sendMessage(msg);
+}
 
+    private void onBrightnessChanged() {
+        mContext.sendBroadcast(mBrightnessOverrideIntent);
+    }
 
     private String mCurrentThermalProfile = "none";
     private void setThermalProfile(String profile) {
