@@ -526,6 +526,14 @@ public class BaikalService extends SystemService {
                     Settings.Global.getUriFor(Settings.Global.BAIKAL_EXTREME_SAVER_ENABLED),
                     false, this);
 
+            resolver.registerContentObserver(
+                    Settings.Global.getUriFor(Settings.Global.POWERSAVE_BLOCK_GMS1_ENABLED),
+                    false, this);
+
+            resolver.registerContentObserver(
+                    Settings.Global.getUriFor(Settings.Global.POWERSAVE_BLOCK_GMS2_ENABLED),
+                    false, this);
+
             } catch( Exception e ) {
             }
 
@@ -541,6 +549,10 @@ public class BaikalService extends SystemService {
             synchronized (BaikalService.this) {
                 updateConstantsLocked();
             }
+
+            synchronized (mStaticMembersLock) {
+                updateStaticConstantsLocked();
+	        }
         }
 
         public void updateConstantsLocked() {
@@ -593,11 +605,12 @@ public class BaikalService extends SystemService {
 	        //mExtremeSaverActive = Settings.Global.getInt(mResolver, 
 	        //    Settings.Global.BAIKAL_EXTREME_SAVER_ACTIVE) == 1;
 
-	        mExtremeSaverEnabled = Settings.Global.getInt(mResolver, 
-	            Settings.Global.BAIKAL_EXTREME_SAVER_ENABLED) == 1;
+	            mExtremeSaverEnabled = Settings.Global.getInt(mResolver, 
+	                    Settings.Global.BAIKAL_EXTREME_SAVER_ENABLED) == 1;
 
                     //mParser.setString(Settings.Global.getString(mResolver,
                     //        Settings.Global.DEVICE_IDLE_CONSTANTS));
+
 
             } catch (Exception e) {
                     // Failed to parse the settings string, log this and move on
@@ -614,6 +627,28 @@ public class BaikalService extends SystemService {
                         ", mProximityServiceSleepEnabled=" + mProximityServiceSleepEnabled +
                         ", mHallSensorServiceEnabled=" + mHallSensorServiceEnabled +
                         ", mThrottleAlarms=" + mThrottleAlarms);
+
+        }
+
+    
+
+        public void updateStaticConstantsLocked() {
+            try {
+	        mHideIdleFromGms = Settings.Global.getInt(mResolver, 
+	            Settings.Global.POWERSAVE_BLOCK_GMS1_ENABLED) == 1;
+
+	        mUnrestrictedNetwork = Settings.Global.getInt(mResolver, 
+	            Settings.Global.POWERSAVE_BLOCK_GMS2_ENABLED) == 1;
+
+
+            } catch (Exception e) {
+                    // Failed to parse the settings string, log this and move on
+                    // with defaults.
+                Slog.e(TAG, "Bad BaikalService static settings", e);
+            }
+
+            Slog.d(TAG, "updateStaticConstantsLocked: mHideIdleFromGms=" + mHideIdleFromGms +
+                        ", mUnrestrictedNetwork=" + mUnrestrictedNetwork);
 
         }
 
@@ -1504,7 +1539,10 @@ public class BaikalService extends SystemService {
 
     	if( isAppPackageWhitelisted(app.info.packageName) ) return 1;
 
-    	int restriction = isAppRestricted(app.info.uid, app.info.packageName) ;
+        ApplicationProfileInfo appInfo = getAppProfileInternal(app.info.packageName);
+
+        int restriction = isAppRestricted(appInfo, app.info.uid, app.info.packageName);
+        
         if( restriction == 1 ) return 1;
         if( restriction == 0 ) return 0;
 
@@ -1590,24 +1628,32 @@ public class BaikalService extends SystemService {
     }
 
     public int isAppRestricted(int uid, String packageName) {
+        ApplicationProfileInfo info = getAppProfileLocked(packageName);
+        return isAppRestricted(info,uid,packageName);
+    }
+
+    private int isAppRestricted(ApplicationProfileInfo info, int uid, String packageName) {
         synchronized(mWhitelistSync) {
             if( Arrays.binarySearch(mDeviceIdleWhitelist, uid) >= 0) return 1;
             if( Arrays.binarySearch(mDeviceIdleTempWhitelist, uid) >= 0) return 1;
         }
 
-	    int priority = getAppPriorityInternal(packageName);
-	    switch(priority)
-	    {
-	        case BaikalServiceManager.PRIO_UNRESTRICTED:
-		        return 1;
-	        case BaikalServiceManager.PRIO_REGULAR:
-		        if( mExtremeSaverActive ) return 2;
-	        case BaikalServiceManager.PRIO_GAME:
-		        break;
-	        case BaikalServiceManager.PRIO_RESTRICTED:
-	        case BaikalServiceManager.PRIO_TOP_ONLY:
-		        return 2;
-	    }
+        if( info != null )
+        {
+            if( info.getAppOption(BaikalServiceManager.OP_PINNED) != 0 ) return 1;
+	        switch(info.priority)
+	        {
+	            case BaikalServiceManager.PRIO_UNRESTRICTED:
+		            return 1;
+	            case BaikalServiceManager.PRIO_REGULAR:
+	    	        if( mExtremeSaverActive ) return 2;
+    	        case BaikalServiceManager.PRIO_GAME:
+		            break;
+	            case BaikalServiceManager.PRIO_RESTRICTED:
+	            case BaikalServiceManager.PRIO_TOP_ONLY:
+		            return 2;
+            }
+        }
 
         if( mAppOpsService == null ) return 0;
         final int mode = mAppOpsService.checkOperation(AppOpsManager.OP_RUN_ANY_IN_BACKGROUND,
@@ -2030,6 +2076,18 @@ public class BaikalService extends SystemService {
         }
     }
 
+    private ApplicationProfileInfo getAppProfileInternal(String packageName) {
+        synchronized(mProfileSync) {
+            if( mApplicationProfiles.containsKey(packageName) ) {
+                return mApplicationProfiles.get(packageName);
+            }
+        }
+        if( DEBUG ) {
+            Slog.i(TAG,"getAppProfileLocked package not found package=" + packageName);
+        }
+        return null;
+    }
+
 
     private ApplicationProfileInfo getOrCreateAppProfileLocked(String packageName) {
         if( mApplicationProfiles.containsKey(packageName) ) {
@@ -2043,6 +2101,7 @@ public class BaikalService extends SystemService {
         }
         return info;
     }
+
 
     private ApplicationProfileInfo getAppProfileLocked(String packageName) {
         if( mApplicationProfiles.containsKey(packageName) ) {
@@ -2438,6 +2497,9 @@ public class BaikalService extends SystemService {
 
     private static Object mStaticMembersLock = new Object();
 
+    private static boolean mHideIdleFromGms;
+    private static boolean mUnrestrictedNetwork;
+	
     private static int mGmsUid = -1;
     static void setGmsUid(int uid) {
         synchronized(mStaticMembersLock) {
@@ -2467,6 +2529,18 @@ public class BaikalService extends SystemService {
     public static int gmsUid() {
         synchronized(mStaticMembersLock) {
             return mGmsUid;
+        }
+    }
+
+    public static boolean gmsHideIdle() {
+        synchronized(mStaticMembersLock) {
+            return mHideIdleFromGms;
+        }
+    }
+
+    public static boolean idleUnrestrictedNetwork() {
+        synchronized(mStaticMembersLock) {
+            return mUnrestrictedNetwork;
         }
     }
 

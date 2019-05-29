@@ -1119,9 +1119,9 @@ public class DeviceIdleController extends SystemService
                     }
                     try {
 
-                        boolean freeNetwork = SystemProperties.get("persist.pm.free_net", "0").equals("1");
+                        //boolean freeNetwork = SystemProperties.get("persist.pm.free_net", "0").equals("1");
 
-                        mNetworkPolicyManager.setDeviceIdleMode(!freeNetwork);
+                        mNetworkPolicyManager.setDeviceIdleMode(!BaikalService.idleUnrestrictedNetwork());
                         mBatteryStats.noteDeviceIdleMode(msg.what == MSG_REPORT_IDLE_ON
                                 ? BatteryStats.DEVICE_IDLE_MODE_DEEP
                                 : BatteryStats.DEVICE_IDLE_MODE_LIGHT, null, Process.myUid());
@@ -1942,8 +1942,16 @@ public class DeviceIdleController extends SystemService
         try {
             int uid = getContext().getPackageManager().getPackageUidAsUser(packageName, userId);
             int appId = UserHandle.getAppId(uid);
+
+	        if( mBaikalService.getAppOption(packageName, BaikalServiceManager.OP_DISABLE_TWL) != 0 ) {
+	            if (DEBUG) {
+        	        Slog.d(TAG, "Temp whitelisting disabled for AppId " + appId);
+                }
+		        return;
+	        }
             addPowerSaveTempWhitelistAppDirectInternal(callingUid, appId, duration, sync, reason);
-        } catch (NameNotFoundException e) {
+
+        } catch (Exception e) {
         }
     }
 

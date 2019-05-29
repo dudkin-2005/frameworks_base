@@ -4847,6 +4847,9 @@ public final class PowerManagerService extends SystemService
         public boolean isDeviceIdleMode() {
             final long ident = Binder.clearCallingIdentity();
             try {
+                final int uid = Binder.getCallingUid();
+                if( BaikalService.isGmsUid(uid) && BaikalService.gmsHideIdle() ) return false;
+
                 return isDeviceIdleModeInternal();
             } finally {
                 Binder.restoreCallingIdentity(ident);
@@ -4857,6 +4860,9 @@ public final class PowerManagerService extends SystemService
         public boolean isLightDeviceIdleMode() {
             final long ident = Binder.clearCallingIdentity();
             try {
+                final int uid = Binder.getCallingUid();
+                if( BaikalService.isGmsUid(uid) && BaikalService.gmsHideIdle() ) return false;
+
                 return isLightDeviceIdleModeInternal();
             } finally {
                 Binder.restoreCallingIdentity(ident);

@@ -62,6 +62,9 @@ public class BaikalServiceManager {
 
     public static final int OP_CAMERA_HAL1 = 1;
     public static final int OP_EXCLUDED_FROM_EXTREME = 2;
+    public static final int OP_PINNED = 3;
+    public static final int OP_DISABLE_TWL = 4;
+
 
     public static final int CHECK_RESTRICT_ALARM = 1;
     public static final int CHECK_RESTRICT_SYNC = 2;
