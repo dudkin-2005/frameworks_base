@@ -161,8 +161,7 @@ public class DozeMachine {
     private void requestState(State requestedState, int pulseReason) {
         Assert.isMainThread();
         if (DEBUG) {
-            Log.i(TAG, "request: current=" + mState + " req=" + requestedState,
-                    new Throwable("here"));
+            Log.i(TAG, "request: current=" + mState + " req=" + requestedState);
         }
 
         boolean runNow = !isExecutingTransition();

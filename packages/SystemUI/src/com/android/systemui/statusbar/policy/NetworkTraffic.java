@@ -307,11 +307,11 @@ public class NetworkTraffic extends TextView implements StatusIconDisplayable  {
     @Override
     public void onDarkChanged(Rect area, float darkIntensity, int tint) {
         if (!DarkIconDispatcher.isInArea(area, this)) {
-            Log.d(TAG, "onDarkChanged ignore " + tint + ", mTintColor=" + mTintColor, new Throwable());
+            Log.d(TAG, "onDarkChanged ignore " + tint + ", mTintColor=" + mTintColor);
             return;
         }
         mTintColor = DarkIconDispatcher.getTint(area, this, tint);
-        Log.d(TAG, "onDarkChanged " + tint + ", mTintColor=" + mTintColor, new Throwable());
+        Log.d(TAG, "onDarkChanged " + tint + ", mTintColor=" + mTintColor);
         setTextColor(tint);
         updateTrafficDrawable();
     }
@@ -361,7 +361,7 @@ public class NetworkTraffic extends TextView implements StatusIconDisplayable  {
 
     @Override
     public void setStaticDrawableColor(int color) {
-        Log.d(TAG, "setStaticDrawableColor " + color, new Throwable());
+        Log.d(TAG, "setStaticDrawableColor " + color);
         mTintColor = color;
         setTextColor(mTintColor);
         updateTrafficDrawable();
@@ -369,6 +369,6 @@ public class NetworkTraffic extends TextView implements StatusIconDisplayable  {
 
     @Override
     public void setDecorColor(int color) {
-        Log.d(TAG, "setDecorColor " + color, new Throwable());
+        Log.d(TAG, "setDecorColor " + color);
     }
 }
