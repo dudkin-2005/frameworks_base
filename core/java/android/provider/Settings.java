@@ -9152,6 +9152,13 @@ public final class Settings {
         public static final String SMARTLOCK_AUTO_UNLOCK = "smartlock_auto_unlock";
 
         /**
+         * Auto unlock by LID if authenticated with smartlock
+         * @hide
+         */
+
+        public static final String SMARTLOCK_LID_UNLOCK = "smartlock_lid_unlock";
+
+        /**
          * Boolean value whether to link ringtone and notification volume
          * @hide
          */

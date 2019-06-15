@@ -1161,20 +1161,25 @@ public class KeyguardUpdateMonitor implements TrustManager.TrustListener {
             Log.v(TAG, "handleScreenTurnedOn: getStrongAuthTracker:" + Integer.toHexString(getStrongAuthTracker().getStrongAuthForUser(userId)));
 
             if( getStrongAuthTracker().getStrongAuthForUser(userId) == 0 &&
-                Settings.Secure.getIntForUser(mContext.getContentResolver(),
+                (Settings.Secure.getIntForUser(mContext.getContentResolver(),
                            Settings.Secure.SMARTLOCK_AUTO_UNLOCK, 0,
-                           UserHandle.USER_CURRENT) == 1 ) {
+                           UserHandle.USER_CURRENT) == 1 
+		) || ( Settings.Secure.getIntForUser(mContext.getContentResolver(),
+                           Settings.Secure.SMARTLOCK_LID_UNLOCK, 0,
+                           UserHandle.USER_CURRENT) == 1 && wakeupReason.equals("android.policy:LID")
+
+		)) {
 
                 //if (DEBUG) {
                     Log.v(TAG, "handleScreenTurnedOn: user authenticated, update trust :" + Integer.toHexString(getStrongAuthTracker().getStrongAuthForUser(userId)));
                 //}
 
-                for (int i = 0; i < mCallbacks.size(); i++) {
-                    KeyguardUpdateMonitorCallback cb = mCallbacks.get(i).get();
-                    if (cb != null) {
-                        cb.onTrustChanged(userId);
+                    for (int i = 0; i < mCallbacks.size(); i++) {
+                        KeyguardUpdateMonitorCallback cb = mCallbacks.get(i).get();
+                        if (cb != null) {
+                            cb.onTrustChanged(userId);
+                        }
                     }
-                }
 
             }
         }
