@@ -122,7 +122,7 @@ import java.util.concurrent.CountDownLatch;
 public class AppStandbyController {
 
     private static final String TAG = "AppStandbyController";
-    static final boolean DEBUG = false;
+    static final boolean DEBUG = true;
 
     static final boolean COMPRESS_TIME = false;
     private static final long ONE_MINUTE = 60 * 1000;
@@ -132,15 +132,15 @@ public class AppStandbyController {
     static final long[] SCREEN_TIME_THRESHOLDS = {
             0,
             0,
-            COMPRESS_TIME ? 120 * 1000 : 1 * ONE_HOUR,
-            COMPRESS_TIME ? 240 * 1000 : 2 * ONE_HOUR
+            COMPRESS_TIME ? 120 * 1000 : 15 * ONE_MINUTE,
+            COMPRESS_TIME ? 240 * 1000 : 30 * ONE_MINUTE
     };
 
     static final long[] ELAPSED_TIME_THRESHOLDS = {
             0,
-            COMPRESS_TIME ?  1 * ONE_MINUTE : 12 * ONE_HOUR,
-            COMPRESS_TIME ?  4 * ONE_MINUTE : 24 * ONE_HOUR,
-            COMPRESS_TIME ? 16 * ONE_MINUTE : 48 * ONE_HOUR
+            COMPRESS_TIME ?  1 * ONE_MINUTE : 5 * ONE_MINUTE,
+            COMPRESS_TIME ?  4 * ONE_MINUTE : 15 * ONE_MINUTE,
+            COMPRESS_TIME ? 16 * ONE_MINUTE : 30 * ONE_MINUTE
     };
 
     static final int[] THRESHOLD_BUCKETS = {
@@ -151,7 +151,7 @@ public class AppStandbyController {
     };
 
     /** Default expiration time for bucket prediction. After this, use thresholds to downgrade. */
-    private static final long DEFAULT_PREDICTION_TIMEOUT = 12 * ONE_HOUR;
+    private static final long DEFAULT_PREDICTION_TIMEOUT = 1 * ONE_HOUR;
 
     /**
      * Indicates the maximum wait time for admin data to be available;
@@ -1023,28 +1023,28 @@ public class AppStandbyController {
                 throw re.rethrowFromSystemServer();
             }
 
-            if (isActiveDeviceAdmin(packageName, userId)) {
+            //if (isActiveDeviceAdmin(packageName, userId)) {
                 //return true;
-            }
+            //}
 
-            if (isActiveNetworkScorer(packageName)) {
+            //if (isActiveNetworkScorer(packageName)) {
                 //return true;
-            }
+            //}
 
-            if (mAppWidgetManager != null
-                    && mInjector.isBoundWidgetPackage(mAppWidgetManager, packageName, userId)) {
+            //if (mAppWidgetManager != null
+            //        && mInjector.isBoundWidgetPackage(mAppWidgetManager, packageName, userId)) {
                 //return true;
-            }
+            //}
 
-            if (isDeviceProvisioningPackage(packageName)) {
+            //if (isDeviceProvisioningPackage(packageName)) {
                 //return true;
-            }
+            //}
         }
 
         // Check this last, as it can be the most expensive check
-        if (isCarrierApp(packageName)) {
-            return true;
-        }
+        //if (isCarrierApp(packageName)) {
+        //    return true;
+        //}
 
         return false;
     }
@@ -1765,15 +1765,15 @@ public class AppStandbyController {
         private static final String KEY_SYSTEM_INTERACTION_HOLD_DURATION =
                 "system_interaction_duration";
         private static final String KEY_STABLE_CHARGING_THRESHOLD = "stable_charging_threshold";
-        public static final long DEFAULT_STRONG_USAGE_TIMEOUT = 1 * ONE_HOUR;
-        public static final long DEFAULT_NOTIFICATION_TIMEOUT = 12 * ONE_HOUR;
-        public static final long DEFAULT_SYSTEM_UPDATE_TIMEOUT = 2 * ONE_HOUR;
-        public static final long DEFAULT_SYSTEM_INTERACTION_TIMEOUT = 10 * ONE_MINUTE;
-        public static final long DEFAULT_SYNC_ADAPTER_TIMEOUT = 10 * ONE_MINUTE;
+        public static final long DEFAULT_STRONG_USAGE_TIMEOUT = 10 * ONE_MINUTE;
+        public static final long DEFAULT_NOTIFICATION_TIMEOUT = 15 * ONE_MINUTE;
+        public static final long DEFAULT_SYSTEM_UPDATE_TIMEOUT = 5 * ONE_MINUTE;
+        public static final long DEFAULT_SYSTEM_INTERACTION_TIMEOUT = 5 * ONE_MINUTE;
+        public static final long DEFAULT_SYNC_ADAPTER_TIMEOUT = 5 * ONE_MINUTE;
         public static final long DEFAULT_EXEMPTED_SYNC_SCHEDULED_NON_DOZE_TIMEOUT = 10 * ONE_MINUTE;
-        public static final long DEFAULT_EXEMPTED_SYNC_SCHEDULED_DOZE_TIMEOUT = 4 * ONE_HOUR;
-        public static final long DEFAULT_EXEMPTED_SYNC_START_TIMEOUT = 10 * ONE_MINUTE;
-        public static final long DEFAULT_STABLE_CHARGING_THRESHOLD = 10 * ONE_MINUTE;
+        public static final long DEFAULT_EXEMPTED_SYNC_SCHEDULED_DOZE_TIMEOUT = 10 * ONE_MINUTE;
+        public static final long DEFAULT_EXEMPTED_SYNC_START_TIMEOUT = 5 * ONE_MINUTE;
+        public static final long DEFAULT_STABLE_CHARGING_THRESHOLD = 5 * ONE_MINUTE;
 
         private final KeyValueListParser mParser = new KeyValueListParser(',');
 
@@ -1830,7 +1830,7 @@ public class AppStandbyController {
                         COMPRESS_TIME ? ONE_MINUTE * 2 : 2 * 60 * ONE_MINUTE);
 
                 mAppIdleParoleDurationMillis = mParser.getDurationMillis(KEY_PAROLE_DURATION,
-                        COMPRESS_TIME ? ONE_MINUTE : 10 * ONE_MINUTE); // 10 minutes
+                        COMPRESS_TIME ? ONE_MINUTE : 1 * ONE_MINUTE); // 10 minutes
 
                 String screenThresholdsValue = mParser.getString(KEY_SCREEN_TIME_THRESHOLDS, null);
                 mAppStandbyScreenThresholds = parseLongArray(screenThresholdsValue,
@@ -1841,7 +1841,7 @@ public class AppStandbyController {
                 mAppStandbyElapsedThresholds = parseLongArray(elapsedThresholdsValue,
                         ELAPSED_TIME_THRESHOLDS);
                 mCheckIdleIntervalMillis = Math.min(mAppStandbyElapsedThresholds[1] / 4,
-                        COMPRESS_TIME ? ONE_MINUTE : 4 * 60 * ONE_MINUTE); // 4 hours
+                        COMPRESS_TIME ? ONE_MINUTE : 1 * 30 * ONE_MINUTE); // 4 hours
                 mStrongUsageTimeoutMillis = mParser.getDurationMillis
                         (KEY_STRONG_USAGE_HOLD_DURATION,
                                 COMPRESS_TIME ? ONE_MINUTE : DEFAULT_STRONG_USAGE_TIMEOUT);
