@@ -24920,7 +24920,7 @@ public class ActivityManagerService extends IActivityManager.Stub
                         + mConstants.SERVICE_USAGE_INTERACTION_TIME;
             }
         } else {
-            isInteraction = app.curProcState <= ActivityManager.PROCESS_STATE_IMPORTANT_FOREGROUND;
+            isInteraction = app.curProcState < ActivityManager.PROCESS_STATE_IMPORTANT_FOREGROUND;
             app.fgInteractionTime = 0;
         }
         if (isInteraction && (!app.reportedInteraction || (nowElapsed-app.interactionEventTime)
